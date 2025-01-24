@@ -4,13 +4,9 @@ const http = require('http');
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server);
 
 const rooms = {};  // ルームの管理
 let currentAnswer = 0
-
-// HTTPサーバーを作成し、それをSocket.IOに渡す
-const server = http.createServer(app);
 
 // Socket.IOをサーバーに接続
 const io = socketIo(server, {
