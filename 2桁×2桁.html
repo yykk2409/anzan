@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>二桁掛け算の問題</title>
+</head>
+<body>
+    <div class="container">
+        <div id="question">問題がここに表示されます</div>
+        <div id="inputFields">
+            <input type="number" id="input1" maxlength="1" />
+            <input type="number" id="input2" maxlength="1" />
+            <input type="number" id="input3" maxlength="1" />
+            <input type="number" id="input4" maxlength="1" />
+        </div>
+        <div id="result"></div>
+        <button onclick="generateQuestion()">リセット</button>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    background-color: #f4f4f4;
+}
+
+.container {
+    text-align: center;
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+#inputFields {
+    display: flex;
+    justify-content: center;
+    margin: 20px;
+}
+
+input[type="number"] {
+    width: 60px;
+    height: 60px;
+    margin: 5px;
+    font-size: 30px;
+    text-align: center;
+    border: 2px solid #ccc;
+    border-radius: 5px;
+    outline: none;
+}
+
+input[type="number"]:focus {
+    border-color: #4CAF50;
+}
+
+input[type="number"]::-webkit-outer-spin-button, 
+input[type="number"]::-webkit-inner-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
+} 
+
+#result {
+    margin-top: 20px;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+#question {
+    font-size: 100px;
+    margin: 20px;
+}
+
+button {
+    padding: 10px 20px;
+    font-size: 16px;
+    margin: 10px;
+    border-radius: 5px;
+    border: none;
+    background-color: #4CAF50;
+    color: white;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
+
+</style>
+<script>
+let currentAnswer = 0;
+
+function generateQuestion() {
+    const num1 = Math.floor(Math.random() * 90) + 10;  // 10〜99
+    const num2 = Math.floor(Math.random() * 90) + 10;  // 10〜99
+    currentAnswer = num1 * num2;
+
+    const questionElement = document.getElementById('question');
+    questionElement.textContent = `${num1} × ${num2} = ?`;
+    document.getElementById('result').textContent = '';
+
+    // 初期化
+    resetFields();
+    document.getElementById('input1').focus(); // 初期フォーカスを一の位に
+	 document.getElementById('input2').disabled = true; 
+	 document.getElementById('input3').disabled = true; 
+	 document.getElementById('input4').disabled = true; 
+	if (currentAnswer.toString().length == 3){
+		document.getElementById('input4').hidden = true
+	}else{
+		document.getElementById('input4').hidden = false
+	}
+}
+
+// 解答欄のリセット
+function resetFields() {
+    const inputs = document.querySelectorAll('input[type="number"]');
+    inputs.forEach(input => {
+        input.value = ''; // 入力をリセット
+        input.style.borderColor = '#ccc'; // 枠の色を元に戻す
+    });
+    document.getElementById('result').textContent = ''; // 結果をリセット
+}
+
+// 各入力欄に入力した際の処理
+function handleInput(event) {
+    const inputs = document.querySelectorAll('input[type="number"]');
+    const inputValues = Array.from(inputs).map(input => input.value);
+
+    // 入力が1文字だけであれば、次の欄にフォーカスを移動
+    if (event.target.value.length === 1) {
+        const nextField = getNextField(event.target);
+        if (nextField) {
+			   nextField.disabled = false
+            nextField.focus();
+        }
+    }
+
+    // 入力した内容が正しいかチェック
+    const userAnswer = parseInt(inputValues.join(''), 10);
+
+    // 正解判定
+    if (userAnswer === currentAnswer) {
+        document.getElementById('result').textContent = '正解！';
+        document.getElementById('result').style.color = 'green';
+        inputs.forEach(input => input.style.borderColor = 'green');  // 正解なら枠を緑に
+		  setTimeout(generateQuestion,1000)
+    } else if (userAnswer.toString().length === 4) {
+        document.getElementById('result').textContent = '不正解';
+        document.getElementById('result').style.color = 'red';
+        inputs.forEach(input => input.style.borderColor = 'red');  // 不正解なら枠を赤に
+    }
+}
+
+// バックスペースキーが押された時の処理
+function handleBackspace(event) {
+    if (event.key === "Backspace") {
+        const prevField = getPrevField(event.target);
+        if (prevField && event.target.value === "") {
+            prevField.focus();
+        }
+    }
+}
+
+// 次の入力欄を取得する関数
+function getNextField(currentField) {
+    const inputs = document.querySelectorAll('input[type="number"]');
+    const currentIndex = Array.from(inputs).indexOf(currentField);
+    return inputs[currentIndex + 1] || null; // 次の欄を返す。なければnull
+}
+
+// 前の入力欄を取得する関数（バックスペース用）
+function getPrevField(currentField) {
+    const inputs = document.querySelectorAll('input[type="number"]');
+    const currentIndex = Array.from(inputs).indexOf(currentField);
+    return inputs[currentIndex - 1] || null; // 前の欄を返す。なければnull
+}
+
+// 各入力欄に入力したら自動でチェックを実行
+document.querySelectorAll('input[type="number"]').forEach(input => {
+    input.addEventListener('input', handleInput); // 文字入力時
+    input.addEventListener('keydown', handleBackspace); // バックスペース時
+});
+
+// 初期問題を表示
+generateQuestion();
+
+</script>
