@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>オンライン対戦</title>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f4;
+        }
+
+        .container {
+            text-align: center;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        input[type="text"] {
+            width: 240px;
+            height: 60px;
+            margin: 5px;
+            font-size: 30px;
+            text-align: center;
+            border: 2px solid #ccc;
+            border-radius: 5px;
+            outline: none;
+        }
+
+        input[type="text"]:focus {
+            border-color: #4CAF50;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 10px;
+            border-radius: 5px;
+            border: none;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #result {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .container2 {
+            text-align: center;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        #inputFields {
+            display: flex;
+            justify-content: center;
+            margin: 20px;
+        }
+
+        input[type="number"] {
+            width: 60px;
+            height: 60px;
+            margin: 5px;
+            font-size: 30px;
+            text-align: center;
+            border: 2px solid #ccc;
+            border-radius: 5px;
+            outline: none;
+        }
+
+        input[type="number"]:focus {
+            border-color: #4CAF50;
+        }
+
+        input[type="number"]::-webkit-outer-spin-button, 
+        input[type="number"]::-webkit-inner-spin-button { 
+        -webkit-appearance: none; 
+        margin: 0; 
+        } 
+
+        #result {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        #question {
+            font-size: 50px;
+            margin: 20px;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container" id='container1'>
+        <h1>オンライン対戦</h1>
+        <div>
+            <input type="text" id="roomId" />
+            <button onclick="joinRoom()">ルームに参加</button>
+        </div>
+        
+    </div>
+
+    <div id="message"></div>
+
+    <div class="container2" id="container2" hidden>
+        <div id="question">問題がここに表示されます</div>
+        <div id="inputFields">
+            <input type="number" id="input1" maxlength="1" />
+            <input type="number" id="input2" maxlength="1" />
+            <input type="number" id="input3" maxlength="1" />
+            <input type="number" id="input4" maxlength="1" />
+        </div>
+        <div id="result"></div>
+    </div>
+
+    <script>
+
+        let roomId
+
+        // 各入力欄に入力した際の処理
+        function handleInput(event) {
+            const inputs = document.querySelectorAll('input[type="number"]');
+            const inputValues = Array.from(inputs).map(input => input.value);
+
+            // 入力が1文字だけであれば、次の欄にフォーカスを移動
+            if (event.target.value.length === 1) {
+                const nextField = getNextField(event.target);
+                if (nextField) {
+                    nextField.disabled = false
+                    nextField.focus();
+                }
+            }
+
+            // 入力した内容が正しいかチェック
+            const userAnswer = parseInt(inputValues.join(''), 10);
+
+            // 正解判定
+            console.log(userAnswer)
+            if (userAnswer){
+                if (userAnswer.toString().length === 3 || userAnswer.toString().length === 4) {
+                    socket.emit('submitAnswer', {roomId,userAnswer});
+                }
+            }
+        }
+
+        // バックスペースキーが押された時の処理
+        function handleBackspace(event) {
+            if (event.key === "Backspace") {
+                const prevField = getPrevField(event.target);
+                if (prevField && event.target.value === "") {
+                    prevField.focus();
+                }
+            }
+        }
+
+        // 次の入力欄を取得する関数
+        function getNextField(currentField) {
+            const inputs = document.querySelectorAll('input[type="number"]');
+            const currentIndex = Array.from(inputs).indexOf(currentField);
+            return inputs[currentIndex + 1] || null; // 次の欄を返す。なければnull
+        }
+
+        // 前の入力欄を取得する関数（バックスペース用）
+        function getPrevField(currentField) {
+            const inputs = document.querySelectorAll('input[type="number"]');
+            const currentIndex = Array.from(inputs).indexOf(currentField);
+            return inputs[currentIndex - 1] || null; // 前の欄を返す。なければnull
+        }
+
+        // 各入力欄に入力したら自動でチェックを実行
+        document.querySelectorAll('input[type="number"]').forEach(input => {
+            input.addEventListener('input', handleInput); // 文字入力時
+            input.addEventListener('keydown', handleBackspace); // バックスペース時
+        });
+        const socket = io();  // サーバーへの接続
+
+        // ルーム参加
+        function joinRoom() {
+            const selectedroomId = document.getElementById('roomId').value
+            document.getElementById('container1').hidden = true
+            roomId = selectedroomId
+            socket.emit('joinRoom', selectedroomId);
+            console.log(`ルーム ${selectedroomId} に参加しました`);
+        }
+
+        // ゲーム開始
+        socket.on('startGame', (message) => {
+            document.getElementById('message').textContent = message;
+            console.log(message);
+            if (message == 'ゲーム開始'){
+                document.getElementById('message').hidden = true
+                setTimeout(() => {
+                    document.getElementById('container2').hidden =false
+                }, 1000);
+            }
+        });
+
+        socket.on('question', (data) => {
+            const { question, answerLength } = data;
+            document.getElementById('question').textContent = question;
+            // 初期化
+            resetFields();
+            document.getElementById('input1').disabled = false;
+            document.getElementById('input1').focus(); // 初期フォーカスを一の位に
+            document.getElementById('input2').disabled = true; 
+            document.getElementById('input3').disabled = true; 
+            document.getElementById('input4').disabled = true; 
+            if (answerLength == 3){
+                document.getElementById('input4').hidden = true
+            }else{
+                document.getElementById('input4').hidden = false
+            }
+        })
+
+        // 解答欄のリセット
+        function resetFields() {
+            const inputs = document.querySelectorAll('input[type="number"]');
+            inputs.forEach(input => {
+                input.value = ''; // 入力をリセット
+                input.style.borderColor = '#ccc'; // 枠の色を元に戻す
+            });
+            document.getElementById('result').textContent = ''; // 結果をリセット
+        }
+
+        // 結果を受け取る
+        socket.on('gameResult', (message) => {
+            document.getElementById('result').textContent = message;
+            if(message == 'YOU WIN' || message == 'YOU LOSE'){
+                document.getElementById('input1').disabled = true; 
+                document.getElementById('input2').disabled = true; 
+                document.getElementById('input3').disabled = true; 
+                document.getElementById('input4').disabled = true;
+            }
+            console.log(message);
+        });
+
+        socket.on('stopGame', (message) => {
+            document.getElementById('container2').hidden = true
+            document.getElementById('message').hidden = false
+            document.getElementById('message').innerHTML = message;
+            
+            console.log(message);
+        });
+    </script>
+</body>
+</html>
